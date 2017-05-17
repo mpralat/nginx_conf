@@ -33,6 +33,7 @@ def run_with_root():
 def main():
     args = parse()
     vhost = VirtualHost(server_name=args.server_name, html_file_path=args.html_file)
+    vhost.start_nginx()
     # creating dirs and files in var/www/virtualhosts
     vhost.prepare_content_directory()
     # add include to nginx.conf

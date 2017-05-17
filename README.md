@@ -5,6 +5,12 @@ Python, pip, NGINX and Python packages
 pip install -r requirements.txt
 ```
 
+The user needs to provide a path to the HTML file.
+You can use the example file to see how the project works
+```
+python main.py -f index.html
+```
+
 ####How it works
 * The user has to provide the path to the HTML site they want to run.
 * If the vHost name is not provided, the default "server" is used.

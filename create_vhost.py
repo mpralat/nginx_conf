@@ -53,6 +53,9 @@ class VirtualHost:
     def restart_nginx(self):
         os.system('/usr/sbin/nginx -s reload')
 
+    def start_nginx(self):
+        os.system('nginx')
+
     def prepare_config_content(self):
         '''
         Prepares the content of the basic configuration file.
