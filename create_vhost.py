@@ -2,14 +2,10 @@ import os
 from shutil import copyfile
 import socket
 
-SITES_AVAILABLE_PATH = '/etc/nginx/sites-available/'
-SITES_ENABLED_PATH = '/etc/nginx/sites-enabled/'
-LOGS_PATH = '/var/www/logs'
-
-verbose = True
 ROOT_DIRECTORY = '/var/www/virtualhosts/'
 NGINX_CONF_FILE = '/etc/nginx/nginx.conf'
 INCLUDE_VHOSTS = '/etc/nginx/conf.d/'
+
 
 class VirtualHost:
     def __init__(self, server_name, html_file_path, port=None):
@@ -24,15 +20,12 @@ class VirtualHost:
         self.flags = os.O_WRONLY | os.O_CREAT
         self.umask_original = os.umask(0)
 
-        #TODO whole static dirs + template
-
     def create_dir(self, path):
         '''
         Basic funtion for creating the directories. 
         '''
         if not os.path.exists(path):
-            if verbose:
-                print("Creating the directory : " + path)
+            print("Creating the directory : " + path)
             os.system("sudo mkdir -p " + path)
 
     def prepare_content_directory(self):
@@ -40,8 +33,7 @@ class VirtualHost:
         Creates a directory for the vhost where the static files should be stored.
         Changes the directory permission and adds the html file added by the user.
         '''
-        if verbose:
-            print("Preparing the content directory and copying the files.")
+        print("Preparing the content directory and copying the static files.")
         self.create_dir(self.html_dir_path)
         os.chmod(self.html_dir_path, 0o755)
         copyfile(self.html_file_path, self.html_dir_path + "/index.html")
@@ -54,24 +46,17 @@ class VirtualHost:
         with open(NGINX_CONF_FILE) as nginx_conf:
             basic_content = nginx_conf.read()
             if not include_string in basic_content:
-                if verbose:
-                    print("Adding the include line to the config file!")
+                print("Adding the include line to the main NGINX config file!")
                 basic_content = basic_content.rstrip()[:-1] + "\n" + include_string + "\n}"
-        # try:
-        #     fdesc = os.open(NGINX_CONF_FILE, self.flags, 0o777)
-        # finally:
-        #     os.umask(self.umask_original)
-        # with os.fdopen(fdesc, 'w') as fout:
-        #     fout.write(basic_content)
-        self.write_to_file(NGINX_CONF_FILE,'w', basic_content)
+        self.write_to_file(NGINX_CONF_FILE, 'w', basic_content)
 
     def restart_nginx(self):
         os.system('/usr/sbin/nginx -s reload')
-        #TODO check if every system has this one
-
 
     def prepare_config_content(self):
-        # Create the content of the config file
+        '''
+        Prepares the content of the basic configuration file.
+        '''
         conf = "server { \naccess_log off;\nerror_log logs/" + self.server_name + ".com_error_log crit;\n\n"
         conf += "listen " + str(self.port) + ";\n\n"
         conf += "server_name " + self.server_name + ".com www." + self.server_name + ".com;\n\n"
@@ -83,62 +68,40 @@ class VirtualHost:
         return conf
 
     def create_vhost_definitions(self):
+        '''
+        Creates a configuration file for the server in the main INCLUDE_VHOSTS directory. 
+        '''
+        print("Creating the conf file...")
         config_path = INCLUDE_VHOSTS + self.server_name + ".com.conf"
         if os.path.exists(config_path):
             os.system('sudo rm ' + config_path)
-        # try:
-        #     fdesc = os.open(config_path, self.flags, 0o777)
-        # finally:
-        #     os.umask(self.umask_original)
-        # with os.fdopen(fdesc, 'w') as fout:
-        #     fout.write()
         self.write_to_file(config_path, 'w', self.prepare_config_content())
 
-
     def add_to_hosts_file(self):
+        '''
+        Adds the line to the /etc/hosts file. First, pings google.com to get our current IP address.
+        '''
         # pings google to get our ip
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip_address = s.getsockname()[0]
         s.close()
+        print("Adding the server name to the /etc/hosts...")
         expression = '\n' + str(ip_address) + " " + "www." + self.server_name + ".com" + " " + self.server_name + ".com"
         with open("/etc/hosts") as hosts_file:
             basic_content = hosts_file.read()
             if not expression in basic_content:
                 self.write_to_file('/etc/hosts', 'a', expression)
 
+        print("You can now access your site at: " + self.server_name + ".com")
+
     def write_to_file(self, file_path, type, content):
+        '''
+        Writes to a file with desired permission.
+        '''
         try:
             fdesc = os.open(file_path, self.flags, 0o777)
         finally:
             os.umask(self.umask_original)
         with os.fdopen(fdesc, type) as fout:
             fout.write(content)
-
-
-    # def create_config_file(self):
-    #     self.create_dir(SITES_AVAILABLE_PATH)
-    #     self.create_dir(SITES_ENABLED_PATH)
-    #
-    #     fname = SITES_AVAILABLE_PATH + self.server_name + ".com.conf"
-    #     content = self.prepare_config_content()
-    #     try:
-    #         fdesc = os.open(fname, self.flags, 0o777)
-    #     finally:
-    #         os.umask(self.umask_original)
-    #     with os.fdopen(fdesc, 'w') as fout:
-    #         fout.write(content)
-    #
-    #     os.chmod(fname, 0o660)
-    #
-    #
-    # def create_vhost(self):
-    #     self.create_config_file()
-    #     self.create_dir(LOGS_PATH)
-    #     os.chmod(LOGS_PATH, 0o660)
-    #     # Creating symbolic links to sites-enabled path
-    #     self.create_dir(SITES_ENABLED_PATH)
-    #     src = SITES_AVAILABLE_PATH + self.server_name + ".com.conf"
-    #     dst = SITES_ENABLED_PATH + self.server_name + ".com.conf"
-    #     os.symlink(src, dst)
-
