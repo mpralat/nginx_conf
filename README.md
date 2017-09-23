@@ -1,5 +1,6 @@
+Simple project for creating nginx configuration.
 ### How to run
-####Depenedencies
+#### Depenedencies
 Python, pip, NGINX and Python packages
 ```
 pip install -r requirements.txt
@@ -11,7 +12,7 @@ You can use the example file to see how the project works
 python main.py -f index.html
 ```
 
-####How it works
+#### How it works
 * The user has to provide the path to the HTML site they want to run.
 * If the vHost name is not provided, the default "server" is used.
 * Preparing the directory from which we'll be serving the static files user has provided at
@@ -24,7 +25,7 @@ var/www/virtualhosts and copying the provided files there.
 * Restarting NGINX again
 * The user can now access their site at an address displayed in the console.
 
-####Additional info
+#### Additional info
 * Because of several changes made in the system files, we have to provide the permission before
 the script starts working. 
 * The user is prompted to type in the sudo password before the scripts starts.
